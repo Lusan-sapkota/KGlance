@@ -1,0 +1,32 @@
+Source: kglance
+Section: kde
+Priority: optional
+Maintainer: Lusan Sapkota <sapkotalusan@gmail.com>
+Build-Depends: debhelper-compat (= 13),
+               cmake,
+               extra-cmake-modules,
+               pkg-config,
+               qt6-base-dev,
+               qt6-base-dev-tools,
+               libkf6globalaccel-dev,
+               libkf6windowsystem-dev,
+               libkf6config-dev,
+               liblayershellqtinterface-dev,
+               libdbus-1-dev
+Standards-Version: 4.6.2
+Homepage: https://github.com/Lusan-sapkota/KGlance
+Rules-Requires-Root: no
+
+Package: kglance
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Shortcut-triggered glance panel for KDE Plasma
+ KGlance is a small popup for KDE Plasma 6 on Wayland showing local
+ time, a world clock, a calendar, and a live notification history,
+ triggered by a global keyboard shortcut and dismissed on click-outside
+ or Escape.
+ .
+ It reuses Plasma's own color scheme, icon theme, global shortcut
+ system, and Digital Clock world-clock configuration wherever possible
+ instead of duplicating settings, keeping its own idle memory footprint
+ to a few megabytes.
