@@ -16,7 +16,7 @@ include(KDEInstallDirs)
 include(KDECMakeSettings)
 include(KDECompilerSettings NO_POLICY_SCOPE)
 
-find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS Widgets)
+find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS Widgets DBus)
 find_package(KF6GlobalAccel ${KF6_MIN_VERSION} REQUIRED)
 find_package(KF6WindowSystem ${KF6_MIN_VERSION} REQUIRED)
 find_package(KF6Config ${KF6_MIN_VERSION} REQUIRED)
@@ -38,6 +38,7 @@ add_executable(kglance
 
 target_link_libraries(kglance PRIVATE
     Qt6::Widgets
+    Qt6::DBus
     KF6::GlobalAccel
     KF6::WindowSystem
     KF6::ConfigCore

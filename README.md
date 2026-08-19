@@ -20,15 +20,15 @@ On KDE, checking the clock, the calendar, or your notification history usually m
 
 * Global shortcut toggles the panel (default `Meta+\``, fully remappable from System Settings, Shortcuts, since it registers just like any other app shortcut)
 * Local time and date
-* World clock, configured in `~/.config/kglance/worldclocks.json`
+* World clock, reusing whatever cities you've already set up in Plasma's own Digital Clock widget, so you never have to configure them twice. Want a KGlance-only list instead? Drop one in `~/.config/kglance/worldclocks.json` and it takes over.
 * A calendar with month navigation
-* Notification history, built by quietly watching the session bus. Plasma's real notification daemon still does all the actual work (popups, sounds, actions). KGlance just takes notes.
-* Search, Clear All, and a Do Not Disturb toggle for that history
+* Notification history, built by quietly watching the session bus. Icons are pulled straight from each notification (favicons, avatars, whatever the app actually sent), falling back to a plain Plasma bell icon when nothing usable is available.
+* Search, a real Do Not Disturb toggle (genuinely inhibits Plasma's notification popups while it's on, not just KGlance's own list), and a Clear All that also closes the real notifications in Plasma, not only KGlance's copy of them
 * Vertically centers itself on whichever monitor Plasma considers active, so it shows up where your cursor actually is
 
 ## What this is not
 
-It is not a notification daemon. It does not intercept, silence, or replace your real notifications. Think of it as a polite houseguest who quietly writes things down instead of interrupting the conversation.
+It is not a notification daemon. Plasma's real one still receives every notification, renders every popup, and plays every sound, KGlance just watches the same traffic and asks nicely to close things or pause things through the same interfaces any well-behaved app would use. Think of it as a polite houseguest, just one who's also allowed to answer the door.
 
 ## How light is it, actually
 
@@ -36,10 +36,10 @@ Measured on a real Plasma 6 Wayland session, panel open or closed makes almost n
 
 | Metric | Value |
 | --- | --- |
-| RSS (total resident memory) | ~100 MB, mostly Qt6/KF6 pages Plasma already loaded for itself |
-| PSS (fair-share of that memory) | ~58 MB |
+| RSS (total resident memory) | ~104 MB, mostly Qt6/KF6 pages Plasma already loaded for itself |
+| PSS (fair-share of that memory) | ~60 MB |
 | Private Dirty (memory that is genuinely KGlance's own) | ~17 MB |
-| Compiled binary, stripped, Release build | ~119 KB |
+| Compiled binary, stripped, Release build | ~147 KB |
 
 RSS looks big at a glance, but almost all of it is shared library pages that were already resident before KGlance even started, since it deliberately reuses Qt6, KDE Frameworks, and LayerShellQt instead of bundling anything of its own. Private Dirty is the number that actually reflects KGlance's marginal cost to your system, and it barely moves whether the panel is open or has been sitting hidden for hours.
 

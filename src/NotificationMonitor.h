@@ -1,12 +1,14 @@
 #pragma once
 
 #include <QDateTime>
+#include <QImage>
 #include <QObject>
 
 struct NotificationEntry {
     quint64 id = 0;
     QString appName;
     QString appIcon;
+    QImage icon; // from the Notify call's image-data/image-path hint, if any; may be null
     QString summary;
     QString body;
     QStringList actions;
@@ -22,13 +24,13 @@ public:
 
 Q_SIGNALS:
     void notificationReceived(const NotificationEntry &entry);
+    void notificationIdAssigned(quint64 entryId, uint realId);
 
 private Q_SLOTS:
-    void handleRaw(const QString &appName, const QString &appIcon, const QString &summary,
-        const QString &body, const QStringList &actions);
+    void handleRaw(quint64 id, const QString &appName, const QString &appIcon, const QImage &icon,
+        const QString &summary, const QString &body, const QStringList &actions);
 
 private:
     class Worker;
     Worker *m_worker;
-    quint64 m_nextId = 1;
 };

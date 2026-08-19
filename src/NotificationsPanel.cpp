@@ -1,16 +1,28 @@
 #include "NotificationsPanel.h"
 
+#include <QDBusInterface>
+#include <QDBusReply>
 #include <QHBoxLayout>
 #include <QIcon>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListView>
 #include <QListWidget>
+#include <QPixmap>
 #include <QToolButton>
 #include <QVBoxLayout>
 
 namespace {
 constexpr int kMaxHistory = 200;
+constexpr int kEntryIdRole = Qt::UserRole;
+constexpr int kRealIdRole = Qt::UserRole + 1;
+
+QDBusInterface notificationsInterface()
+{
+    return QDBusInterface(QStringLiteral("org.kde.plasmashell"),
+        QStringLiteral("/org/freedesktop/Notifications"),
+        QStringLiteral("org.freedesktop.Notifications"));
+}
 }
 
 class NotificationItemWidget : public QFrame {
@@ -23,7 +35,11 @@ public:
         , m_body(entry.body)
     {
         auto *iconLabel = new QLabel(this);
-        iconLabel->setPixmap(QIcon::fromTheme(entry.appIcon, QIcon::fromTheme(QStringLiteral("applications-other"))).pixmap(20, 20));
+        if (!entry.icon.isNull()) {
+            iconLabel->setPixmap(QPixmap::fromImage(entry.icon).scaled(20, 20, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        } else {
+            iconLabel->setPixmap(QIcon::fromTheme(entry.appIcon, QIcon::fromTheme(QStringLiteral("notifications"))).pixmap(20, 20));
+        }
 
         auto *appNameLabel = new QLabel(entry.appName, this);
         appNameLabel->setStyleSheet(QStringLiteral("font-weight: 600;"));
@@ -79,14 +95,11 @@ NotificationsPanel::NotificationsPanel(QWidget *parent)
 
     m_clearButton->setIcon(QIcon::fromTheme(QStringLiteral("edit-clear-history")));
     m_clearButton->setToolTip(tr("Clear All"));
-    connect(m_clearButton, &QToolButton::clicked, m_list, &QListWidget::clear);
+    connect(m_clearButton, &QToolButton::clicked, this, &NotificationsPanel::clearAll);
 
     m_dndButton->setCheckable(true);
     m_dndButton->setToolTip(tr("Do Not Disturb"));
-    connect(m_dndButton, &QToolButton::toggled, this, [this](bool checked) {
-        m_doNotDisturb = checked;
-        updateDndButton();
-    });
+    connect(m_dndButton, &QToolButton::toggled, this, &NotificationsPanel::setDoNotDisturb);
     updateDndButton();
 
     auto *headerRow = new QHBoxLayout;
@@ -110,6 +123,22 @@ NotificationsPanel::NotificationsPanel(QWidget *parent)
     layout->addWidget(m_list, 1);
 
     connect(m_monitor, &NotificationMonitor::notificationReceived, this, &NotificationsPanel::addEntry);
+    connect(m_monitor, &NotificationMonitor::notificationIdAssigned, this, [this](quint64 entryId, uint realId) {
+        for (int i = 0; i < m_list->count(); ++i) {
+            auto *item = m_list->item(i);
+            if (item->data(kEntryIdRole).toULongLong() == entryId) {
+                item->setData(kRealIdRole, realId);
+                break;
+            }
+        }
+    });
+}
+
+NotificationsPanel::~NotificationsPanel()
+{
+    if (m_doNotDisturb && m_inhibitCookie != 0) {
+        notificationsInterface().call(QStringLiteral("UnInhibit"), m_inhibitCookie);
+    }
 }
 
 void NotificationsPanel::focusSearch()
@@ -128,6 +157,7 @@ void NotificationsPanel::addEntry(const NotificationEntry &entry)
     widget->adjustSize(); // re-run the layout now that width is fixed, so wrapped labels report their real height
 
     auto *item = new QListWidgetItem();
+    item->setData(kEntryIdRole, entry.id);
     item->setSizeHint(QSize(widget->width(), widget->height()));
     m_list->insertItem(0, item);
     m_list->setItemWidget(item, widget);
@@ -151,6 +181,34 @@ void NotificationsPanel::updateDndButton()
     m_dndButton->setIcon(QIcon::fromTheme(m_doNotDisturb
         ? QStringLiteral("notifications-disabled")
         : QStringLiteral("notifications")));
+}
+
+void NotificationsPanel::setDoNotDisturb(bool enabled)
+{
+    m_doNotDisturb = enabled;
+    updateDndButton();
+
+    auto notifications = notificationsInterface();
+    if (enabled) {
+        QDBusReply<uint> reply = notifications.call(QStringLiteral("Inhibit"),
+            QStringLiteral("kglance"), QStringLiteral("Do Not Disturb enabled from KGlance"), QVariantMap());
+        m_inhibitCookie = reply.isValid() ? reply.value() : 0;
+    } else if (m_inhibitCookie != 0) {
+        notifications.call(QStringLiteral("UnInhibit"), m_inhibitCookie);
+        m_inhibitCookie = 0;
+    }
+}
+
+void NotificationsPanel::clearAll()
+{
+    auto notifications = notificationsInterface();
+    for (int i = 0; i < m_list->count(); ++i) {
+        const uint realId = m_list->item(i)->data(kRealIdRole).toUInt();
+        if (realId != 0) {
+            notifications.call(QStringLiteral("CloseNotification"), realId);
+        }
+    }
+    m_list->clear();
 }
 
 #include "NotificationsPanel.moc"
