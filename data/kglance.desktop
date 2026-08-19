@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=KGlance
+Comment=Shortcut-triggered glance panel for clock, world clock and calendar
+Exec=kglance
+Icon=view-calendar
+NoDisplay=true
+X-KDE-StartupNotify=false
