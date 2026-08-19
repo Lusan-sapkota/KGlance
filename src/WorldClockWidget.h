@@ -13,6 +13,10 @@ class WorldClockWidget : public QWidget {
 public:
     explicit WorldClockWidget(QWidget *parent = nullptr);
 
+protected:
+    void showEvent(QShowEvent *event) override;
+    void hideEvent(QHideEvent *event) override;
+
 private:
     void refresh();
     void step(int delta);

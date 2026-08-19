@@ -43,8 +43,20 @@ WorldClockWidget::WorldClockWidget(QWidget *parent)
     setVisible(!m_entries.isEmpty());
 
     connect(m_timer, &QTimer::timeout, this, &WorldClockWidget::refresh);
-    m_timer->start(1000);
     refresh();
+}
+
+void WorldClockWidget::showEvent(QShowEvent *event)
+{
+    QWidget::showEvent(event);
+    refresh();
+    m_timer->start(1000);
+}
+
+void WorldClockWidget::hideEvent(QHideEvent *event)
+{
+    QWidget::hideEvent(event);
+    m_timer->stop();
 }
 
 void WorldClockWidget::step(int delta)

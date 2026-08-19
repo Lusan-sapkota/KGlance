@@ -1,0 +1,12 @@
+[Unit]
+Description=KGlance quick-glance panel
+After=plasma-workspace.target
+PartOf=graphical-session.target
+
+[Service]
+ExecStart=kglance
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=graphical-session.target

@@ -3,12 +3,16 @@
 #include <LayerShellQt/Window>
 
 #include <QFrame>
+#include <QGuiApplication>
+#include <QScreen>
+#include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QVBoxLayout>
 #include <QWindow>
 
 #include "CalendarWidget.h"
 #include "LocalTimeWidget.h"
+#include "NotificationsPanel.h"
 #include "WorldClockWidget.h"
 
 GlanceWindow::GlanceWindow(QWidget *parent)
@@ -18,15 +22,21 @@ GlanceWindow::GlanceWindow(QWidget *parent)
 
     auto *panel = new QFrame(this);
     panel->setObjectName(QStringLiteral("panel"));
-    panel->setFixedWidth(360);
     panel->setStyleSheet(QStringLiteral("QFrame#panel { background-color: palette(window); border-radius: 14px; }"));
 
-    auto *panelLayout = new QVBoxLayout(panel);
+    auto *leftColumn = new QVBoxLayout;
+    leftColumn->addWidget(new LocalTimeWidget(panel));
+    leftColumn->addWidget(new WorldClockWidget(panel));
+    leftColumn->addWidget(new CalendarWidget(panel));
+
+    m_notificationsPanel = new NotificationsPanel(panel);
+    m_notificationsPanel->setFixedWidth(380);
+
+    auto *panelLayout = new QHBoxLayout(panel);
     panelLayout->setContentsMargins(18, 18, 18, 18);
-    panelLayout->setSpacing(14);
-    panelLayout->addWidget(new LocalTimeWidget(panel));
-    panelLayout->addWidget(new WorldClockWidget(panel));
-    panelLayout->addWidget(new CalendarWidget(panel));
+    panelLayout->setSpacing(20);
+    panelLayout->addLayout(leftColumn);
+    panelLayout->addWidget(m_notificationsPanel);
 
     auto *layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
@@ -53,8 +63,21 @@ void GlanceWindow::configureLayerShell()
     layerWindow->setScope(QStringLiteral("kglance"));
     layerWindow->setWantsToBeOnActiveScreen(true); // follow KWin's active output, e.g. the one under the cursor
     layerWindow->setAnchors(LayerShellQt::Window::Anchors(LayerShellQt::Window::AnchorTop));
-    layerWindow->setMargins(QMargins(0, 96, 0, 0));
     layerWindow->setDesiredSize(size());
+
+    // Qt's QCursor::pos() is unreliable on Wayland (privacy-restricted), so we can't pick the
+    // active screen ourselves; instead react to KWin resolving it via wantsToBeOnActiveScreen.
+    auto recenter = [this, layerWindow] {
+        QScreen *screen = layerWindow->screen();
+        if (!screen) {
+            screen = QGuiApplication::primaryScreen();
+        }
+        const int topMargin = qMax(0, (screen->geometry().height() - height()) / 2);
+        layerWindow->setMargins(QMargins(0, topMargin, 0, 0));
+    };
+
+    connect(layerWindow, &LayerShellQt::Window::screenChanged, this, recenter);
+    recenter();
 }
 
 void GlanceWindow::toggle()
@@ -65,6 +88,7 @@ void GlanceWindow::toggle()
         show();
         raise();
         windowHandle()->requestActivate();
+        m_notificationsPanel->focusSearch();
     }
 }
 

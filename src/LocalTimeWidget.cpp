@@ -23,8 +23,20 @@ LocalTimeWidget::LocalTimeWidget(QWidget *parent)
     layout->addWidget(m_dateLabel);
 
     connect(m_timer, &QTimer::timeout, this, &LocalTimeWidget::refresh);
-    m_timer->start(1000);
     refresh();
+}
+
+void LocalTimeWidget::showEvent(QShowEvent *event)
+{
+    QWidget::showEvent(event);
+    refresh();
+    m_timer->start(1000);
+}
+
+void LocalTimeWidget::hideEvent(QHideEvent *event)
+{
+    QWidget::hideEvent(event);
+    m_timer->stop();
 }
 
 void LocalTimeWidget::refresh()

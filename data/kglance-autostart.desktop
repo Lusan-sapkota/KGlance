@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=KGlance
-Exec=kglance
-Icon=view-calendar
-NoDisplay=true
-X-KDE-StartupNotify=false
-X-KDE-autostart-phase=1

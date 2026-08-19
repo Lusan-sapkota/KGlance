@@ -2,6 +2,8 @@
 
 #include <QWidget>
 
+class NotificationsPanel;
+
 class GlanceWindow : public QWidget {
     Q_OBJECT
 public:
@@ -15,4 +17,6 @@ protected:
 
 private:
     void configureLayerShell();
+
+    NotificationsPanel *m_notificationsPanel;
 };
