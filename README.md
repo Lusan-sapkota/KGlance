@@ -16,6 +16,25 @@ It borrows literally everything it can from Plasma itself (colors, icons, the gl
 
 On KDE, checking the clock, the calendar, or your notification history usually means diving into the system tray and clicking around like you're defusing something. KGlance skips all of that. One shortcut, one glance, done. Hence the name. I'm very proud of it.
 
+## Installing
+
+**Debian / Ubuntu** (via PPA):
+
+```
+sudo add-apt-repository ppa:lusan/kglance
+sudo apt update
+sudo apt install kglance
+```
+
+**Fedora** (via COPR):
+
+```
+sudo dnf copr enable lusan/kglance
+sudo dnf install kglance
+```
+
+**Arch**: AUR registration is temporarily closed, so no `kglance-git` package up there yet. You use Arch btw, so building from source (see below) shouldn't scare you. The `PKGBUILD` is already sitting in `packaging/aur/`, ready to publish the moment registration reopens.
+
 ## Features
 
 * Global shortcut toggles the panel (default `Meta+\``, fully remappable from System Settings, Shortcuts, since it registers just like any other app shortcut)
