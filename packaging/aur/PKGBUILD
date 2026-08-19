@@ -1,0 +1,35 @@
+# Maintainer: Lusan Sapkota <sapkotalusan@gmail.com>
+
+# VCS package: no tagged release exists yet, so this tracks the main
+# branch directly. Once a real vX.Y.Z tag exists, add a non-git
+# "kglance" package alongside this one that builds from the release tarball.
+pkgname=kglance-git
+pkgver=0.1.0.r0.g0000000
+pkgrel=1
+pkgdesc="Shortcut-triggered glance panel for KDE Plasma (clock, world clock, calendar, notifications)"
+arch=('x86_64')
+url="https://github.com/Lusan-sapkota/KGlance"
+license=('MIT')
+depends=('qt6-base' 'kglobalaccel' 'kwindowsystem' 'kconfig' 'layer-shell-qt' 'dbus')
+makedepends=('cmake' 'extra-cmake-modules' 'git')
+provides=('kglance')
+conflicts=('kglance')
+source=("$pkgname::git+$url.git")
+sha256sums=('SKIP')
+
+pkgver() {
+    cd "$pkgname"
+    git describe --long --tags 2>/dev/null | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g' || \
+        printf "0.1.0.r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+build() {
+    cmake -B build -S "$pkgname" \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr
+    cmake --build build
+}
+
+package() {
+    DESTDIR="$pkgdir" cmake --install build
+}
