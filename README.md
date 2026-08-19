@@ -14,7 +14,7 @@ It borrows literally everything it can from Plasma itself (colors, icons, the gl
 
 ## Why does this exist
 
-On KDE, checking the clock, the calendar, or your notification history usually means diving into the system tray and clicking around like you're defusing something. KGlance skips all of that. One shortcut, one glance, done. Hence the name. We are very proud of it.
+On KDE, checking the clock, the calendar, or your notification history usually means diving into the system tray and clicking around like you're defusing something. KGlance skips all of that. One shortcut, one glance, done. Hence the name. I'm very proud of it.
 
 ## Features
 
