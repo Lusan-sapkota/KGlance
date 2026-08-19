@@ -32,7 +32,7 @@ and Digital Clock world-clock configuration wherever possible instead
 of duplicating settings.
 
 %prep
-%autosetup
+%autosetup -n KGlance-%{version}
 
 %build
 %cmake
