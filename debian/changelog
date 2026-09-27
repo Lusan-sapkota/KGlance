@@ -1,3 +1,12 @@
+kglance (0.1.3-1) resolute; urgency=medium
+
+  * Collapse notifications that update in place into one card.
+  * Harden notification image, markup and reply-id handling.
+  * Card backgrounds, three-line bodies, relative timestamps.
+  * Includes the 0.1.2 fix for squashed notification cards.
+
+ -- Lusan Sapkota <sapkotalusan@gmail.com>  Sun, 27 Sep 2026 14:22:14 +0545
+
 kglance (0.1.2-1) resolute; urgency=medium
 
   * Fix notification cards being squashed and clipped in the panel.

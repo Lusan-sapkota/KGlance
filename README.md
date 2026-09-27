@@ -77,6 +77,10 @@ You'll need Qt6, KDE Frameworks 6 (GlobalAccel, WindowSystem, Config), LayerShel
 * KDE Plasma 6 on Wayland
 * A healthy tolerance for an app that eavesdrops on your own notifications, for entirely good reasons
 
+## Contributing
+
+Bug reports and pull requests are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md). What changed in each release is in [CHANGELOG.md](CHANGELOG.md).
+
 ## License
 
 MIT. Do whatever you want with it. If your world clock ends up set to the wrong Tokyo, that one's on you though.

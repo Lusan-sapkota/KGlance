@@ -17,6 +17,9 @@ public:
 
     void focusSearch();
 
+protected:
+    void showEvent(QShowEvent *event) override;
+
 private:
     QList<NotificationItemWidget *> items() const;
     void addEntry(const NotificationEntry &entry);

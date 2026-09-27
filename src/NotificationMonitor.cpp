@@ -80,7 +80,11 @@ QImage readImageDataHint(DBusMessageIter *variantIter)
     int length = 0;
     dbus_message_iter_get_fixed_array(&bytes, &data, &length);
 
-    if (!data || width <= 0 || height <= 0 || bitsPerSample != 8) {
+    // Any app on the bus can send this, so never trust the header against the byte count.
+    if (!data || bitsPerSample != 8 || (channels != 3 && channels != 4)
+        || width <= 0 || height <= 0 || width > 1024 || height > 1024
+        || rowstride < width * channels
+        || qint64(rowstride) * (height - 1) + width * channels > length) {
         return {};
     }
 
@@ -180,7 +184,7 @@ public:
     void requestStop() { m_stop.storeRelaxed(1); }
 
 Q_SIGNALS:
-    void raw(quint64 id, const QString &appName, const QString &appIcon, const QImage &icon,
+    void raw(quint64 id, uint replacesId, const QString &appName, const QString &appIcon, const QImage &icon,
         const QString &summary, const QString &body, const QStringList &actions);
     void idAssigned(quint64 entryId, uint realId);
 
@@ -235,16 +239,22 @@ protected:
     }
 
 private:
-    quint64 registerPendingNotify(dbus_uint32_t serial)
+    // Serials are only unique per sender, so replies are matched on (sender, serial).
+    using PendingKey = QPair<QString, dbus_uint32_t>;
+
+    quint64 registerPendingNotify(const char *sender, dbus_uint32_t serial)
     {
+        if (m_pendingSerials.size() > 1000) {
+            m_pendingSerials.clear(); // replies we never saw (e.g. plasmashell restarted); don't grow forever
+        }
         const quint64 id = m_nextId++;
-        m_pendingSerials.insert(serial, id);
+        m_pendingSerials.insert(PendingKey(QString::fromUtf8(sender), serial), id);
         return id;
     }
 
-    bool resolvePendingReply(dbus_uint32_t replySerial, quint64 *outEntryId)
+    bool resolvePendingReply(const char *destination, dbus_uint32_t replySerial, quint64 *outEntryId)
     {
-        const auto it = m_pendingSerials.constFind(replySerial);
+        const auto it = m_pendingSerials.constFind(PendingKey(QString::fromUtf8(destination), replySerial));
         if (it == m_pendingSerials.constEnd()) {
             return false;
         }
@@ -265,7 +275,11 @@ private:
             }
 
             const QString appName = readString(&iter);
-            dbus_message_iter_next(&iter); // replaces_id (uint32), unused
+            dbus_message_iter_next(&iter);
+            dbus_uint32_t replacesId = 0;
+            if (dbus_message_iter_get_arg_type(&iter) == DBUS_TYPE_UINT32) {
+                dbus_message_iter_get_basic(&iter, &replacesId);
+            }
             dbus_message_iter_next(&iter);
             const QString appIcon = readString(&iter);
             dbus_message_iter_next(&iter);
@@ -277,14 +291,14 @@ private:
             dbus_message_iter_next(&iter);
             const QImage icon = readIconFromHints(&iter);
 
-            const quint64 id = worker->registerPendingNotify(dbus_message_get_serial(message));
-            Q_EMIT worker->raw(id, appName, appIcon, icon, summary, body, actions);
+            const quint64 id = worker->registerPendingNotify(dbus_message_get_sender(message), dbus_message_get_serial(message));
+            Q_EMIT worker->raw(id, replacesId, appName, appIcon, icon, summary, body, actions);
             return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
         }
 
         if (dbus_message_get_type(message) == DBUS_MESSAGE_TYPE_METHOD_RETURN) {
             quint64 entryId = 0;
-            if (worker->resolvePendingReply(dbus_message_get_reply_serial(message), &entryId)) {
+            if (worker->resolvePendingReply(dbus_message_get_destination(message), dbus_message_get_reply_serial(message), &entryId)) {
                 DBusMessageIter iter;
                 if (dbus_message_iter_init(message, &iter) && dbus_message_iter_get_arg_type(&iter) == DBUS_TYPE_UINT32) {
                     dbus_uint32_t realId = 0;
@@ -298,7 +312,7 @@ private:
     }
 
     QAtomicInteger<int> m_stop{0};
-    QHash<dbus_uint32_t, quint64> m_pendingSerials;
+    QHash<PendingKey, quint64> m_pendingSerials;
     quint64 m_nextId = 1;
 };
 
@@ -318,11 +332,12 @@ NotificationMonitor::~NotificationMonitor()
     m_worker->wait();
 }
 
-void NotificationMonitor::handleRaw(quint64 id, const QString &appName, const QString &appIcon, const QImage &icon,
+void NotificationMonitor::handleRaw(quint64 id, uint replacesId, const QString &appName, const QString &appIcon, const QImage &icon,
     const QString &summary, const QString &body, const QStringList &actions)
 {
     NotificationEntry entry;
     entry.id = id;
+    entry.replacesId = replacesId;
     entry.appName = appName;
     entry.appIcon = appIcon;
     entry.icon = icon;
