@@ -1,3 +1,9 @@
+kglance (0.1.2-1) resolute; urgency=medium
+
+  * Fix notification cards being squashed and clipped in the panel.
+
+ -- Lusan Sapkota <sapkotalusan@gmail.com>  Sun, 27 Sep 2026 13:52:10 +0545
+
 kglance (0.1.0-1) resolute; urgency=medium
 
   * Initial release.

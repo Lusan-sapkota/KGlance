@@ -1,5 +1,5 @@
 Name:           kglance
-Version:        0.1.0
+Version:        0.1.2
 Release:        1%{?dist}
 Summary:        Shortcut-triggered glance panel for KDE Plasma
 
@@ -48,5 +48,8 @@ of duplicating settings.
 %{_prefix}/lib/systemd/user/kglance.service
 
 %changelog
+* Sun Sep 27 2026 Lusan Sapkota <sapkotalusan@gmail.com> - 0.1.2-1
+- Fix notification cards being squashed and clipped in the panel
+
 * Wed Aug 19 2026 Lusan Sapkota <sapkotalusan@gmail.com> - 0.1.0-1
 - Initial release

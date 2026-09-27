@@ -5,8 +5,9 @@
 #include "NotificationMonitor.h"
 
 class QLineEdit;
-class QListWidget;
 class QToolButton;
+class QVBoxLayout;
+class NotificationItemWidget;
 
 class NotificationsPanel : public QWidget {
     Q_OBJECT
@@ -17,6 +18,7 @@ public:
     void focusSearch();
 
 private:
+    QList<NotificationItemWidget *> items() const;
     void addEntry(const NotificationEntry &entry);
     void applyFilter(const QString &text);
     void updateDndButton();
@@ -27,7 +29,8 @@ private:
     QToolButton *m_clearButton;
     QToolButton *m_dndButton;
     QLineEdit *m_searchEdit;
-    QListWidget *m_list;
+    QWidget *m_list;
+    QVBoxLayout *m_listLayout;
     bool m_doNotDisturb = false;
     uint m_inhibitCookie = 0;
 };

@@ -1,10 +1,9 @@
 # Maintainer: Lusan Sapkota <sapkotalusan@gmail.com>
 
-# VCS package: no tagged release exists yet, so this tracks the main
-# branch directly. Once a real vX.Y.Z tag exists, add a non-git
-# "kglance" package alongside this one that builds from the release tarball.
+# VCS package: tracks the main branch directly. A non-git "kglance"
+# package building from the release tarball can be added alongside this one.
 pkgname=kglance-git
-pkgver=0.1.0.r0.g0000000
+pkgver=0.1.2.r0.g0000000
 pkgrel=1
 pkgdesc="Shortcut-triggered glance panel for KDE Plasma (clock, world clock, calendar, notifications)"
 arch=('x86_64')
@@ -20,7 +19,7 @@ sha256sums=('SKIP')
 pkgver() {
     cd "$pkgname"
     git describe --long --tags 2>/dev/null | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g' || \
-        printf "0.1.0.r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+        printf "0.1.2.r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
 }
 
 build() {

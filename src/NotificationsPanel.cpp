@@ -6,16 +6,13 @@
 #include <QIcon>
 #include <QLabel>
 #include <QLineEdit>
-#include <QListView>
-#include <QListWidget>
 #include <QPixmap>
+#include <QScrollArea>
 #include <QToolButton>
 #include <QVBoxLayout>
 
 namespace {
 constexpr int kMaxHistory = 200;
-constexpr int kEntryIdRole = Qt::UserRole;
-constexpr int kRealIdRole = Qt::UserRole + 1;
 
 QDBusInterface notificationsInterface()
 {
@@ -30,6 +27,7 @@ class NotificationItemWidget : public QFrame {
 public:
     explicit NotificationItemWidget(const NotificationEntry &entry, QWidget *parent = nullptr)
         : QFrame(parent)
+        , entryId(entry.id)
         , m_appName(entry.appName)
         , m_summary(entry.summary)
         , m_body(entry.body)
@@ -69,6 +67,9 @@ public:
         }
     }
 
+    quint64 entryId;
+    uint realId = 0;
+
     bool matches(const QString &needle) const
     {
         return m_appName.contains(needle, Qt::CaseInsensitive)
@@ -88,7 +89,8 @@ NotificationsPanel::NotificationsPanel(QWidget *parent)
     , m_clearButton(new QToolButton(this))
     , m_dndButton(new QToolButton(this))
     , m_searchEdit(new QLineEdit(this))
-    , m_list(new QListWidget(this))
+    , m_list(new QWidget)
+    , m_listLayout(new QVBoxLayout(m_list))
 {
     auto *titleLabel = new QLabel(tr("Notifications"), this);
     titleLabel->setStyleSheet(QStringLiteral("font-weight: 600;"));
@@ -111,23 +113,25 @@ NotificationsPanel::NotificationsPanel(QWidget *parent)
     m_searchEdit->setPlaceholderText(tr("Search notifications..."));
     connect(m_searchEdit, &QLineEdit::textChanged, this, &NotificationsPanel::applyFilter);
 
-    m_list->setFrameShape(QFrame::NoFrame);
-    m_list->setSelectionMode(QAbstractItemView::NoSelection);
-    m_list->setUniformItemSizes(false);
-    m_list->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    m_list->setResizeMode(QListView::Adjust);
+    m_listLayout->setContentsMargins(0, 0, 0, 0);
+    m_listLayout->addStretch(); // keeps cards packed at the top
+
+    auto *scrollArea = new QScrollArea(this);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setWidget(m_list);
 
     auto *layout = new QVBoxLayout(this);
     layout->addLayout(headerRow);
     layout->addWidget(m_searchEdit);
-    layout->addWidget(m_list, 1);
+    layout->addWidget(scrollArea, 1);
 
     connect(m_monitor, &NotificationMonitor::notificationReceived, this, &NotificationsPanel::addEntry);
     connect(m_monitor, &NotificationMonitor::notificationIdAssigned, this, [this](quint64 entryId, uint realId) {
-        for (int i = 0; i < m_list->count(); ++i) {
-            auto *item = m_list->item(i);
-            if (item->data(kEntryIdRole).toULongLong() == entryId) {
-                item->setData(kRealIdRole, realId);
+        for (auto *item : items()) {
+            if (item->entryId == entryId) {
+                item->realId = realId;
                 break;
             }
         }
@@ -146,33 +150,31 @@ void NotificationsPanel::focusSearch()
     m_searchEdit->setFocus(Qt::ActiveWindowFocusReason);
 }
 
+QList<NotificationItemWidget *> NotificationsPanel::items() const
+{
+    return m_list->findChildren<NotificationItemWidget *>(Qt::FindDirectChildrenOnly);
+}
+
 void NotificationsPanel::addEntry(const NotificationEntry &entry)
 {
     if (m_doNotDisturb) {
         return;
     }
 
-    auto *widget = new NotificationItemWidget(entry, m_list);
-    widget->setFixedWidth(qMax(m_list->viewport()->width() - 4, 100));
-    widget->adjustSize(); // re-run the layout now that width is fixed, so wrapped labels report their real height
+    auto *item = new NotificationItemWidget(entry, m_list);
+    item->setVisible(item->matches(m_searchEdit->text()));
+    m_listLayout->insertWidget(0, item);
 
-    auto *item = new QListWidgetItem();
-    item->setData(kEntryIdRole, entry.id);
-    item->setSizeHint(QSize(widget->width(), widget->height()));
-    m_list->insertItem(0, item);
-    m_list->setItemWidget(item, widget);
-
-    while (m_list->count() > kMaxHistory) {
-        delete m_list->takeItem(m_list->count() - 1);
+    // layout count includes the trailing stretch
+    while (m_listLayout->count() - 1 > kMaxHistory) {
+        delete m_listLayout->itemAt(m_listLayout->count() - 2)->widget();
     }
 }
 
 void NotificationsPanel::applyFilter(const QString &text)
 {
-    for (int i = 0; i < m_list->count(); ++i) {
-        auto *item = m_list->item(i);
-        auto *widget = qobject_cast<NotificationItemWidget *>(m_list->itemWidget(item));
-        item->setHidden(widget && !widget->matches(text));
+    for (auto *item : items()) {
+        item->setVisible(item->matches(text));
     }
 }
 
@@ -202,13 +204,12 @@ void NotificationsPanel::setDoNotDisturb(bool enabled)
 void NotificationsPanel::clearAll()
 {
     auto notifications = notificationsInterface();
-    for (int i = 0; i < m_list->count(); ++i) {
-        const uint realId = m_list->item(i)->data(kRealIdRole).toUInt();
-        if (realId != 0) {
-            notifications.call(QStringLiteral("CloseNotification"), realId);
+    for (auto *item : items()) {
+        if (item->realId != 0) {
+            notifications.call(QStringLiteral("CloseNotification"), item->realId);
         }
+        delete item;
     }
-    m_list->clear();
 }
 
 #include "NotificationsPanel.moc"
