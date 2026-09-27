@@ -63,29 +63,3 @@ Changes to notification parsing should also survive broken input. `NotificationM
 4. Pushing the tag builds on COPR (webhook) and uploads to the Launchpad PPA (`.github/workflows/ppa.yml`) automatically. Then create the GitHub release.
 
 The PPA workflow fails early if the tag doesn't match the version in `debian/changelog`. To retry a failed upload, run **Upload to PPA** from the Actions tab with the existing tag.
-
-### PPA signing key (one-time setup, and again when the key expires)
-
-The PPA workflow signs uploads with a CI-only GPG key stored in the repo secret `PPA_GPG_PRIVATE_KEY`. Launchpad only accepts uploads signed by a key registered on the `~lusan` account.
-
-1. Create a key. Use RSA, and keep the encryption subkey, because Launchpad confirms keys by encrypted email:
-   ```
-   gpg --quick-gen-key "Lusan Sapkota (KGlance CI) <sapkotalusan@gmail.com>" rsa4096 default 2y
-   FPR=$(gpg --list-keys --with-colons "KGlance CI" | awk -F: '/^fpr/ {print $10; exit}')
-   ```
-2. Publish it, then check it arrived (this should print `200`):
-   ```
-   gpg --keyserver hkps://keyserver.ubuntu.com --send-keys $FPR
-   curl -s -o /dev/null -w "%{http_code}\n" "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x$FPR"
-   ```
-3. Register it at https://launchpad.net/~lusan/+editpgpkeys: paste `$FPR` and click **Import Key**.
-4. Launchpad emails an encrypted message ("Confirm your OpenPGP Key"; check spam). In Gmail use ⋮ → **Show original**, copy the `-----BEGIN PGP MESSAGE-----` block, run `gpg -d`, paste it, press Ctrl+D, and open the link it prints.
-5. Confirm it's active (the fingerprint should be listed):
-   ```
-   curl -s https://api.launchpad.net/1.0/~lusan/gpg_keys | grep -o '"fingerprint": "[^"]*"'
-   ```
-6. Hand it to GitHub:
-   ```
-   gpg --armor --export-secret-keys $FPR | gh secret set PPA_GPG_PRIVATE_KEY -R Lusan-sapkota/KGlance
-   ```
-   If the key has a passphrase, also run `gh secret set PPA_GPG_PASSPHRASE`.
